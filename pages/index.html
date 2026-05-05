@@ -25,6 +25,7 @@
                     autocomplete="off"
                     autofocus
             >
+            <button type="button" class="clear-button" id="clearButton" aria-label="Clear input">×</button>
             <button type="submit" id="submitButton">Ask</button>
         </div>
     </form>
@@ -43,8 +44,43 @@
 
     const form = document.getElementById("askForm");
     const input = document.getElementById("questionInput");
-    const button = document.getElementById("submitButton");
+    const inputWrap = input.closest(".input-wrap");
+    const submitButton = document.getElementById("submitButton");
+    const clearButton = document.getElementById("clearButton");
     const answerSection = document.getElementById("answerSection");
+
+    // refusal phrases the llm uses when context is out of domain
+    const refusalPhrases = [
+        "does not contain",
+        "couldn't find",
+        "i couldn't",
+        "no information",
+        "not enough information",
+    ];
+
+    function isRefusal(answer) {
+        const lowered = answer.toLowerCase();
+        return refusalPhrases.some((phrase) => {
+            return lowered.includes(phrase);
+        });
+    }
+
+    // toggle the clear button visibility based on input content
+    function syncClearVisibility() {
+        if (input.value.length > 0) {
+            inputWrap.classList.add("has-content");
+        } else {
+            inputWrap.classList.remove("has-content");
+        }
+    }
+
+    function clearAll() {
+        input.value = "";
+        syncClearVisibility();
+        answerSection.classList.remove("visible");
+        answerSection.innerHTML = "";
+        input.focus();
+    }
 
     // turn [n] markers in the answer text into clickable superscript anchors
     function renderAnswerWithCitations(answer) {
@@ -59,45 +95,55 @@
             return "";
         }
         const items = sources.map((url, index) => `
-                <li class="source-item" id="source-${index + 1}">
-                    <span class="source-number">[${index + 1}]</span>
-                    <a class="source-link" href="${url}" target="_blank" rel="noopener">${url}</a>
-                </li>
-            `).join("");
+            <li class="source-item" id="source-${index + 1}">
+                <span class="source-number">[${index + 1}]</span>
+                <a class="source-link" href="${url}" target="_blank" rel="noopener">${url}</a>
+            </li>
+        `).join("");
         return `<div class="section-label">Sources</div><ul class="sources-list">${items}</ul>`;
     }
 
     function showLoading() {
         answerSection.innerHTML = `
-                <div class="section-label">Thinking</div>
-                <div class="loading">
-                    <span class="dots">
-                        <span class="dot"></span>
-                        <span class="dot"></span>
-                        <span class="dot"></span>
-                    </span>
-                    <span>retrieving context, generating answer</span>
-                </div>
-            `;
+            <div class="section-label">Thinking</div>
+            <div class="loading">
+                <span class="dots">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </span>
+                <span>retrieving context, generating answer</span>
+            </div>
+        `;
         answerSection.classList.add("visible");
     }
 
+    // hide sources when the model refuses — they weren't actually cited
     function showAnswer(answer, sources) {
+        const sourcesHtml = isRefusal(answer) ? "" : buildSourcesList(sources);
         answerSection.innerHTML = `
-                <div class="section-label">Answer</div>
-                <div class="answer-text">${renderAnswerWithCitations(answer)}</div>
-                ${buildSourcesList(sources)}
-            `;
+            <div class="section-label">Answer</div>
+            <div class="answer-text">${renderAnswerWithCitations(answer)}</div>
+            ${sourcesHtml}
+        `;
         answerSection.classList.add("visible");
     }
 
     function showError(message) {
         answerSection.innerHTML = `
-                <div class="section-label">Error</div>
-                <div class="error-box">${message}</div>
-            `;
+            <div class="section-label">Error</div>
+            <div class="error-box">${message}</div>
+        `;
         answerSection.classList.add("visible");
     }
+
+    input.addEventListener("input", syncClearVisibility);
+    input.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+            clearAll();
+        }
+    });
+    clearButton.addEventListener("click", clearAll);
 
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -106,7 +152,7 @@
             return;
         }
 
-        button.disabled = true;
+        submitButton.disabled = true;
         answerSection.classList.remove("visible");
 
         // brief gap so the fade-out reads cleanly before showing loading
@@ -124,7 +170,7 @@
         } catch (error) {
             showError(error instanceof Error ? error.message : "Unknown error");
         } finally {
-            button.disabled = false;
+            submitButton.disabled = false;
         }
     });
 </script>
