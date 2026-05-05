@@ -10,9 +10,11 @@
  *
  * Learn more at https://developers.cloudflare.com/workers/
  */
-
 export default {
-	async fetch(request, env, ctx): Promise<Response> {
-		return new Response("Hello World!");
+	async fetch(request: Request, env: Env): Promise<Response> {
+		const result = await env.AI.run("@cf/meta/llama-3-8b-instruct", {
+			messages: [{ role: "user", content: "What is the square root of 9?" }],
+		});
+		return Response.json(result);
 	},
 } satisfies ExportedHandler<Env>;
