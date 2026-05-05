@@ -12,9 +12,11 @@
  */
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		const result = await env.AI.run("@cf/meta/llama-3-8b-instruct", {
-			messages: [{ role: "user", content: "What is the square root of 9?" }],
-		});
+		const result = await env.AI.run(
+			env.CHAT_MODEL,
+			{ messages: [{ role: "user", content: "What is the square root of 9?" }] },
+			{ gateway: { id: env.AI_GATEWAY_ID } }
+		);
 		return Response.json(result);
 	},
 } satisfies ExportedHandler<Env>;
