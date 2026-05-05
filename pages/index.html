@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocFlare — Cloudflare Documentation Chatbot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter+Tight:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Doc<span class="accent">Flare</span></h1>
+        <p class="subtitle">A retrieval-augmented chatbot over Cloudflare's developer documentation. Ask anything about Workers, Vectorize, D1, AI Gateway, Workflows.</p>
+    </header>
+
+    <form class="ask-form" id="askForm">
+        <div class="input-wrap">
+            <input
+                    type="text"
+                    id="questionInput"
+                    placeholder="Ask about Cloudflare's developer platform..."
+                    autocomplete="off"
+                    autofocus
+            >
+            <button type="submit" id="submitButton">Ask</button>
+        </div>
+    </form>
+
+    <section class="answer-section" id="answerSection"></section>
+
+    <footer>
+        <span>DocFlare</span>
+        <span>Workers · AI Gateway · Vectorize · D1 · Workflows</span>
+    </footer>
+</div>
+
+<script>
+    // bake the deployed worker url here; cors allowlist on the worker must include this pages origin
+    const apiUrl = "https://docflare.doubleoevan.workers.dev";
+
+    const form = document.getElementById("askForm");
+    const input = document.getElementById("questionInput");
+    const button = document.getElementById("submitButton");
+    const answerSection = document.getElementById("answerSection");
+
+    // turn [n] markers in the answer text into clickable superscript anchors
+    function renderAnswerWithCitations(answer) {
+        return answer.replace(/\[(\d+)\]/g, (_, number) => {
+            return `<sup><a href="#source-${number}">[${number}]</a></sup>`;
+        });
+    }
+
+    // build numbered source list; indices match the citation markers in the answer
+    function buildSourcesList(sources) {
+        if (!sources || sources.length === 0) {
+            return "";
+        }
+        const items = sources.map((url, index) => `
+                <li class="source-item" id="source-${index + 1}">
+                    <span class="source-number">[${index + 1}]</span>
+                    <a class="source-link" href="${url}" target="_blank" rel="noopener">${url}</a>
+                </li>
+            `).join("");
+        return `<div class="section-label">Sources</div><ul class="sources-list">${items}</ul>`;
+    }
+
+    function showLoading() {
+        answerSection.innerHTML = `
+                <div class="section-label">Thinking</div>
+                <div class="loading">
+                    <span class="dots">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </span>
+                    <span>retrieving context, generating answer</span>
+                </div>
+            `;
+        answerSection.classList.add("visible");
+    }
+
+    function showAnswer(answer, sources) {
+        answerSection.innerHTML = `
+                <div class="section-label">Answer</div>
+                <div class="answer-text">${renderAnswerWithCitations(answer)}</div>
+                ${buildSourcesList(sources)}
+            `;
+        answerSection.classList.add("visible");
+    }
+
+    function showError(message) {
+        answerSection.innerHTML = `
+                <div class="section-label">Error</div>
+                <div class="error-box">${message}</div>
+            `;
+        answerSection.classList.add("visible");
+    }
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const question = input.value.trim();
+        if (!question) {
+            return;
+        }
+
+        button.disabled = true;
+        answerSection.classList.remove("visible");
+
+        // brief gap so the fade-out reads cleanly before showing loading
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        showLoading();
+
+        try {
+            const url = `${apiUrl}/ask?q=${encodeURIComponent(question)}`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            const data = await response.json();
+            showAnswer(data.answer, data.sources);
+        } catch (error) {
+            showError(error instanceof Error ? error.message : "Unknown error");
+        } finally {
+            button.disabled = false;
+        }
+    });
+</script>
+</body>
+</html>

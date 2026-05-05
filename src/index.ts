@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import type { IngestParams } from "./workflows/ingest";
 
 export { IngestWorkflow } from "./workflows/ingest";
@@ -16,6 +17,16 @@ export { IngestWorkflow } from "./workflows/ingest";
  * Learn more at https://developers.cloudflare.com/workers/
  */
 const app = new Hono<{ Bindings: Env }>();
+
+// allow the deployed pages site and local dev origins to hit the api
+app.use("/*", cors({
+    origin: [
+        "http://localhost:8788",
+        "https://docflare-ui.pages.dev",
+    ],
+    allowMethods: ["GET", "POST", "OPTIONS"],
+}));
+
 
 app.post("/ingest", async (context) => {
     const body = await context.req.json<IngestParams>();
