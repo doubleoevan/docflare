@@ -1,3 +1,6 @@
+import { Hono } from "hono";
+import type { IngestParams } from "./workflows/ingest";
+
 export { IngestWorkflow } from "./workflows/ingest";
 
 /**
@@ -12,13 +15,15 @@ export { IngestWorkflow } from "./workflows/ingest";
  *
  * Learn more at https://developers.cloudflare.com/workers/
  */
-export default {
-	async fetch(request: Request, env: Env): Promise<Response> {
-		const result = await env.AI.run(
-			env.CHAT_MODEL,
-			{ messages: [{ role: "user", content: "What is the square root of 9?" }] },
-			{ gateway: { id: env.AI_GATEWAY_ID } }
-		);
-		return Response.json(result);
-	},
-} satisfies ExportedHandler<Env>;
+const app = new Hono<{ Bindings: Env }>();
+
+app.post("/ingest", async (context) => {
+    const body = await context.req.json<IngestParams>();
+    if (!body.text || !body.doc_url) {
+        return context.text("Missing text or doc_url", 400);
+    }
+    await context.env.INGEST_WORKFLOW.create({params: body});
+    return context.text("Queued", 202);
+});
+
+export default app;

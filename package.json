@@ -1,22 +1,27 @@
 {
   "name": "docflare",
   "version": "0.0.0",
+  "type": "module",
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev",
     "test": "vitest",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "ingest": "tsx scripts/ingest.ts"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.12.4",
     "@types/node": "^25.6.0",
+    "glob": "^13.0.6",
+    "tsx": "^4.21.0",
     "typescript": "^5.5.2",
     "vitest": "~3.2.0",
     "wrangler": "^4.88.0"
   },
   "dependencies": {
-    "@langchain/textsplitters": "^1.0.1"
+    "@langchain/textsplitters": "^1.0.1",
+    "hono": "^4.12.17"
   }
 }
