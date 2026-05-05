@@ -31,6 +31,21 @@
 		"binding": "AI",
 		"remote": true
 	},
+	"vectorize": [
+		{
+			"binding": "VECTOR_INDEX",
+			"index_name": "docflare-index",
+			"remote": true
+		}
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "docflare-db",
+			"database_id": "00f2541b-fd17-4804-92b4-65c6b59ce217",
+			"remote": true
+		}
+	],
 
 	/**
 	 * Environment Variables
