@@ -1,3 +1,5 @@
+export { IngestWorkflow } from "./workflows/ingest";
+
 /**
  * Welcome to Cloudflare Workers! This is your first worker.
  *
